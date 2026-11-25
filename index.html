@@ -1,0 +1,1520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Sansad Showdown: Debate Arena</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js for retro arcade sound effects without external assets -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            overflow: hidden;
+            touch-action: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        h1, h2, h3, .arcade-font {
+            font-family: 'Fredoka', sans-serif;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        .arcade-btn {
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+        }
+        .arcade-btn:active {
+            transform: translateY(3px);
+        }
+        /* Custom scrollbar hiding */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+</head>
+<body class="w-screen h-screen flex flex-col items-center justify-center bg-slate-900 text-white relative">
+
+    <!-- Main Game Container -->
+    <div id="game-wrapper" class="relative w-full h-full max-w-6xl max-h-[820px] flex flex-col bg-slate-800 sm:rounded-2xl shadow-2xl overflow-hidden border-0 sm:border-4 border-amber-500/40">
+
+        <!-- Top HUD (Visible during gameplay) -->
+        <div id="hud" class="hidden absolute top-0 left-0 right-0 z-20 px-3 py-2 sm:px-6 sm:py-3 bg-gradient-to-b from-slate-950/90 via-slate-900/70 to-transparent pointer-events-none">
+            <div class="flex items-center justify-between gap-2 sm:gap-4">
+                
+                <!-- Player 1 Info -->
+                <div class="flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-2">
+                            <span id="p1-badge" class="px-2 py-0.5 text-xs font-bold rounded bg-orange-500 text-white shadow">P1</span>
+                            <span id="p1-name" class="arcade-font text-sm sm:text-lg font-bold tracking-wide text-amber-200 truncate">Narendra Modi</span>
+                        </div>
+                        <div class="flex items-center gap-1 bg-slate-950/80 px-2.5 py-0.5 rounded-full border border-amber-400/50">
+                            <span class="text-xs text-amber-300 font-semibold">PTS:</span>
+                            <span id="p1-score" class="arcade-font text-sm sm:text-base font-bold text-white">0</span>
+                        </div>
+                    </div>
+                    <!-- Health Bar -->
+                    <div class="w-full h-3.5 sm:h-5 bg-slate-800 rounded-full p-0.5 border border-slate-600 shadow-inner overflow-hidden">
+                        <div id="p1-hp-bar" class="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                    <!-- Special Cooldown Meter -->
+                    <div class="flex items-center gap-2 mt-1">
+                        <span class="text-[10px] uppercase tracking-wider text-slate-300 font-semibold">Policy Wave</span>
+                        <div class="w-24 sm:w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="p1-sp-bar" class="h-full bg-sky-400 transition-all duration-100" style="width: 100%;"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Center Timer & Sound Toggle -->
+                <div class="flex flex-col items-center justify-center px-2 sm:px-4">
+                    <div class="bg-slate-950/90 border-2 border-amber-400 rounded-xl px-3 py-1 sm:px-4 sm:py-1.5 shadow-lg flex flex-col items-center">
+                        <span class="text-[9px] uppercase tracking-widest text-amber-300 font-bold">Session</span>
+                        <span id="timer-display" class="arcade-font text-xl sm:text-3xl font-bold text-white leading-none">60</span>
+                    </div>
+                    <button id="sound-toggle-btn" class="pointer-events-auto mt-1 text-[11px] bg-slate-800/90 hover:bg-slate-700 text-slate-200 px-2 py-0.5 rounded-full border border-slate-600 transition">
+                        🔊 SFX ON
+                    </button>
+                </div>
+
+                <!-- Player 2 Info -->
+                <div class="flex-1 flex flex-col">
+                    <div class="flex items-center justify-between mb-1">
+                        <div class="flex items-center gap-1 bg-slate-950/80 px-2.5 py-0.5 rounded-full border border-emerald-400/50">
+                            <span class="text-xs text-emerald-300 font-semibold">PTS:</span>
+                            <span id="p2-score" class="arcade-font text-sm sm:text-base font-bold text-white">0</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="p2-name" class="arcade-font text-sm sm:text-lg font-bold tracking-wide text-emerald-200 truncate">Rahul Gandhi</span>
+                            <span id="p2-badge" class="px-2 py-0.5 text-xs font-bold rounded bg-emerald-600 text-white shadow">CPU</span>
+                        </div>
+                    </div>
+                    <!-- Health Bar -->
+                    <div class="w-full h-3.5 sm:h-5 bg-slate-800 rounded-full p-0.5 border border-slate-600 shadow-inner overflow-hidden flex justify-end">
+                        <div id="p2-hp-bar" class="h-full bg-gradient-to-l from-emerald-500 to-teal-300 rounded-full transition-all duration-150" style="width: 100%;"></div>
+                    </div>
+                    <!-- Special Cooldown Meter -->
+                    <div class="flex items-center justify-end gap-2 mt-1">
+                        <div class="w-24 sm:w-32 h-1.5 bg-slate-800 rounded-full overflow-hidden flex justify-end">
+                            <div id="p2-sp-bar" class="h-full bg-sky-400 transition-all duration-100" style="width: 100%;"></div>
+                        </div>
+                        <span class="text-[10px] uppercase tracking-wider text-slate-300 font-semibold">Policy Wave</span>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Canvas Area -->
+        <div id="canvas-container" class="relative flex-1 w-full h-full">
+            <canvas id="gameCanvas"></canvas>
+
+            <!-- Desktop Controls Hint Bar (Bottom subtle overlay) -->
+            <div id="desktop-controls-hint" class="hidden md:flex absolute bottom-2 left-1/2 -translate-x-1/2 z-10 bg-slate-950/75 backdrop-blur-sm border border-slate-700/70 rounded-full px-5 py-1.5 text-xs text-slate-300 gap-6 pointer-events-none">
+                <div><span class="font-bold text-amber-400">P1:</span> Move [W A S D] • Jab [F] • Wave [G] • Shield [H]</div>
+                <div id="p2-hint-text"><span class="font-bold text-emerald-400">P2:</span> Move [Arrows] • Jab [K] • Wave [L] • Shield [M]</div>
+            </div>
+
+            <!-- Mobile / Touch On-Screen Controls -->
+            <div id="mobile-controls" class="hidden md:hidden absolute bottom-3 left-3 right-3 z-20 flex items-end justify-between pointer-events-none">
+                <!-- Left D-Pad -->
+                <div class="grid grid-cols-3 gap-1.5 pointer-events-auto bg-slate-950/50 p-2 rounded-2xl backdrop-blur-sm border border-white/10">
+                    <div></div>
+                    <button data-action="up" class="touch-btn w-11 h-11 bg-slate-800/90 active:bg-amber-500 rounded-xl flex items-center justify-center text-lg font-bold shadow border border-slate-600">▲</button>
+                    <div></div>
+                    <button data-action="left" class="touch-btn w-11 h-11 bg-slate-800/90 active:bg-amber-500 rounded-xl flex items-center justify-center text-lg font-bold shadow border border-slate-600">◀</button>
+                    <button data-action="down" class="touch-btn w-11 h-11 bg-slate-800/90 active:bg-amber-500 rounded-xl flex items-center justify-center text-lg font-bold shadow border border-slate-600">▼</button>
+                    <button data-action="right" class="touch-btn w-11 h-11 bg-slate-800/90 active:bg-amber-500 rounded-xl flex items-center justify-center text-lg font-bold shadow border border-slate-600">▶</button>
+                </div>
+
+                <!-- Right Action Buttons -->
+                <div class="flex flex-col items-end gap-2 pointer-events-auto bg-slate-950/50 p-2.5 rounded-2xl backdrop-blur-sm border border-white/10">
+                    <button data-action="special" class="touch-btn px-4 py-2.5 bg-sky-600/90 active:bg-sky-400 rounded-xl text-xs font-bold uppercase tracking-wider shadow border border-sky-300/40">📜 Wave</button>
+                    <div class="flex gap-2">
+                        <button data-action="shield" class="touch-btn px-3.5 py-3 bg-indigo-600/90 active:bg-indigo-400 rounded-xl text-xs font-bold uppercase tracking-wider shadow border border-indigo-300/40">🛡️ Shield</button>
+                        <button data-action="jab" class="touch-btn px-4 py-3 bg-amber-500/90 active:bg-amber-300 text-slate-950 rounded-xl text-xs font-extrabold uppercase tracking-wider shadow border border-amber-200">🎤 Jab</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- START / MAIN MENU OVERLAY -->
+        <div id="menu-screen" class="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-4 sm:p-8 text-center overflow-y-auto">
+            <!-- Decorative Tricolor Top Accent -->
+            <div class="flex w-48 h-1.5 rounded-full overflow-hidden mb-3 shadow">
+                <div class="flex-1 bg-orange-500"></div>
+                <div class="flex-1 bg-white"></div>
+                <div class="flex-1 bg-emerald-600"></div>
+            </div>
+
+            <h1 class="arcade-font text-3xl sm:text-5xl md:text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-white to-emerald-300 drop-shadow mb-2">
+                SANSAD SHOWDOWN
+            </h1>
+            <p class="text-slate-300 text-xs sm:text-base max-w-xl mb-6">
+                A lighthearted arcade parliamentary debate duel! Score points with <span class="text-amber-300 font-semibold">Debate Jabs</span>, launch <span class="text-sky-300 font-semibold">Policy Waves</span>, defend with your <span class="text-indigo-300 font-semibold">Constitution Shield</span>, and collect <span class="text-yellow-300 font-semibold">Vote Orbs</span>!
+            </p>
+
+            <!-- Mode & Character Selection Card -->
+            <div class="w-full max-w-2xl bg-slate-900/90 border border-slate-700 rounded-2xl p-4 sm:p-6 shadow-2xl mb-5">
+                
+                <!-- Step 1: Game Mode -->
+                <div class="mb-5">
+                    <label class="block text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">1. Select Game Mode</label>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button id="mode-1p-btn" class="arcade-btn py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base border-2 border-amber-400 bg-amber-500/20 text-amber-200 shadow-lg">
+                            🤖 1P vs AI
+                        </button>
+                        <button id="mode-2p-btn" class="arcade-btn py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base border-2 border-slate-700 bg-slate-800/70 text-slate-300 hover:border-slate-500">
+                            👥 2P Local PvP
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Step 2: Select Speaker (P1 Character) -->
+                <div class="mb-5">
+                    <label id="char-select-label" class="block text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">2. Choose Player 1 Debater (Equal Stats)</label>
+                    <div class="grid grid-cols-2 gap-3 sm:gap-4">
+                        <!-- Modi Card -->
+                        <button id="select-modi-btn" class="arcade-btn flex flex-col items-center p-3 sm:p-4 rounded-xl border-2 border-orange-400 bg-gradient-to-b from-orange-500/25 to-slate-800/90 text-left transition">
+                            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-orange-100 border-2 border-orange-400 flex items-center justify-center mb-2 shadow-inner overflow-hidden">
+                                <canvas id="preview-modi" width="64" height="64"></canvas>
+                            </div>
+                            <span class="arcade-font text-base sm:text-lg font-bold text-orange-200">Narendra Modi</span>
+                            <span class="text-[11px] text-slate-300 text-center mt-0.5">Saffron Jacket • Crisp Oratory</span>
+                        </button>
+
+                        <!-- Rahul Card -->
+                        <button id="select-rahul-btn" class="arcade-btn flex flex-col items-center p-3 sm:p-4 rounded-xl border-2 border-slate-700 bg-slate-800/70 hover:border-emerald-400/60 text-left transition">
+                            <div class="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-emerald-100 border-2 border-emerald-400 flex items-center justify-center mb-2 shadow-inner overflow-hidden">
+                                <canvas id="preview-rahul" width="64" height="64"></canvas>
+                            </div>
+                            <span class="arcade-font text-base sm:text-lg font-bold text-emerald-200">Rahul Gandhi</span>
+                            <span class="text-[11px] text-slate-300 text-center mt-0.5">White Kurta • Dynamic Rally</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Equal Balance & Controls Summary -->
+                <div class="bg-slate-950/70 rounded-xl p-3 border border-slate-800 text-xs text-slate-300 grid grid-cols-1 sm:grid-cols-2 gap-2 text-left">
+                    <div>
+                        <p class="font-bold text-amber-300 mb-1">⚖️ 100% Balanced Rules:</p>
+                        <ul class="space-y-0.5 text-[11px] text-slate-400">
+                            <li>• Identical 100 HP, Speed, Jump & Damage</li>
+                            <li>• Debate Jab: +10 PTS (8 DMG)</li>
+                            <li>• Policy Wave: +15 PTS (12 DMG)</li>
+                            <li>• Center Vote Orb: +25 PTS</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <p class="font-bold text-sky-300 mb-1">🎮 Controls:</p>
+                        <ul class="space-y-0.5 text-[11px] text-slate-400">
+                            <li>• <strong class="text-white">P1:</strong> WASD Move | F Jab | G Wave | H Shield</li>
+                            <li>• <strong class="text-white">P2:</strong> Arrows Move | K Jab | L Wave | M Shield</li>
+                            <li>• <strong class="text-white">Mobile:</strong> On-screen touch controls</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Start Button -->
+            <button id="start-game-btn" class="arcade-btn px-8 py-3.5 sm:px-12 sm:py-4 rounded-2xl bg-gradient-to-r from-orange-500 via-amber-500 to-emerald-600 hover:brightness-110 text-slate-950 arcade-font text-xl sm:text-2xl font-extrabold tracking-wide shadow-xl shadow-amber-500/20 border-2 border-white/40">
+                START DEBATE SESSION 🎙️
+            </button>
+        </div>
+
+        <!-- VICTORY / ROUND OVER OVERLAY -->
+        <div id="gameover-screen" class="hidden absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+            <div class="bg-slate-900 border-2 border-amber-400/70 rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl">
+                <span class="inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 text-xs font-bold uppercase tracking-widest mb-2">
+                    Session Adjourned
+                </span>
+                <h2 id="winner-title" class="arcade-font text-3xl sm:text-4xl font-bold text-white mb-1">
+                    Narendra Modi Wins!
+                </h2>
+                <p id="winner-reason" class="text-sm text-slate-300 mb-5">
+                    Won the parliamentary floor on Debate Points!
+                </p>
+
+                <!-- Final Scoreboard -->
+                <div class="grid grid-cols-2 gap-3 bg-slate-950/80 p-4 rounded-2xl border border-slate-800 mb-6">
+                    <div class="flex flex-col items-center border-r border-slate-800 pr-2">
+                        <span id="end-p1-name" class="text-xs font-bold text-amber-300 truncate max-w-full">Narendra Modi</span>
+                        <span id="end-p1-pts" class="arcade-font text-2xl sm:text-3xl font-bold text-white mt-1">0 PTS</span>
+                        <span id="end-p1-hp" class="text-[11px] text-slate-400">HP: 100</span>
+                    </div>
+                    <div class="flex flex-col items-center pl-2">
+                        <span id="end-p2-name" class="text-xs font-bold text-emerald-300 truncate max-w-full">Rahul Gandhi</span>
+                        <span id="end-p2-pts" class="arcade-font text-2xl sm:text-3xl font-bold text-white mt-1">0 PTS</span>
+                        <span id="end-p2-hp" class="text-[11px] text-slate-400">HP: 100</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-3">
+                    <button id="rematch-btn" class="arcade-btn flex-1 py-3 px-5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 arcade-font text-lg font-bold shadow-lg">
+                        🔄 Rematch
+                    </button>
+                    <button id="menu-btn" class="arcade-btn py-3 px-5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-sm border border-slate-600">
+                        Main Menu
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        /**
+         * SANSAD SHOWDOWN: DEBATE ARENA
+         * A lighthearted, balanced 2D parliamentary debate arcade game.
+         * Both characters share identical physical and combat parameters.
+         */
+
+        // ==========================================
+        // 1. AUDIO SYNTHESIZER (Tone.js)
+        // ==========================================
+        class SoundManager {
+            constructor() {
+                this.enabled = true;
+                this.initialized = false;
+                this.synth = null;
+                this.poly = null;
+                this.lastTriggerTime = 0;
+            }
+
+            async init() {
+                if (this.initialized) return;
+                try {
+                    await Tone.start();
+                    this.synth = new Tone.Synth({
+                        oscillator: { type: 'triangle' },
+                        envelope: { attack: 0.01, decay: 0.12, sustain: 0.05, release: 0.1 }
+                    }).toDestination();
+                    this.synth.volume.value = -8;
+
+                    this.poly = new Tone.PolySynth(Tone.Synth).toDestination();
+                    this.poly.volume.value = -10;
+                    this.initialized = true;
+                } catch (e) {
+                    console.warn("Audio init skipped:", e);
+                }
+            }
+
+            getSafeTime(offset = 0) {
+                const now = Tone.now() + offset;
+                const safeTime = Math.max(now, this.lastTriggerTime + 0.005);
+                this.lastTriggerTime = safeTime;
+                return safeTime;
+            }
+
+            triggerNote(note, duration) {
+                if (!this.enabled || !this.initialized || !this.synth) return;
+                try {
+                    this.synth.triggerAttackRelease(note, duration, this.getSafeTime());
+                } catch (e) {
+                    // Ignore rare audio scheduling race conditions
+                }
+            }
+
+            playJab() {
+                this.triggerNote("C5", "16n");
+            }
+
+            playHit() {
+                this.triggerNote("G3", "16n");
+            }
+
+            playBlock() {
+                this.triggerNote("E5", "32n");
+            }
+
+            playWave() {
+                this.triggerNote("A4", "8n");
+            }
+
+            playOrb() {
+                if (!this.enabled || !this.initialized || !this.poly) return;
+                try {
+                    this.poly.triggerAttackRelease(["C5", "E5", "G5"], "16n", this.getSafeTime());
+                } catch (e) {}
+            }
+
+            playJump() {
+                this.triggerNote("D4", "32n");
+            }
+
+            playWin() {
+                if (!this.enabled || !this.initialized || !this.poly) return;
+                try {
+                    const t1 = this.getSafeTime(0);
+                    const t2 = this.getSafeTime(0.15);
+                    const t3 = this.getSafeTime(0.3);
+                    this.poly.triggerAttackRelease(["C4", "E4", "G4"], "8n", t1);
+                    this.poly.triggerAttackRelease(["F4", "A4", "C5"], "8n", t2);
+                    this.poly.triggerAttackRelease(["G4", "B4", "D5", "G5"], "4n", t3);
+                } catch (e) {}
+            }
+        }
+
+        const sfx = new SoundManager();
+
+        // ==========================================
+        // 2. GAME CONFIGURATION & BALANCED STATS
+        // ==========================================
+        const BALANCED_STATS = {
+            maxHp: 100,
+            speed: 340,            // px/sec
+            jumpForce: -650,       // px/sec
+            gravity: 1650,         // px/sec^2
+            jabDamage: 8,
+            jabPoints: 10,
+            jabCooldown: 0.38,     // seconds
+            jabDuration: 0.18,     // seconds
+            jabRange: 72,
+            waveDamage: 12,
+            wavePoints: 15,
+            waveCooldown: 2.6,     // seconds
+            waveSpeed: 540,        // px/sec
+            shieldDamageMult: 0.15,// 85% damage reduction when shielding
+            orbPoints: 25,
+            roundDuration: 60
+        };
+
+        const CHARACTERS = {
+            modi: {
+                id: 'modi',
+                name: 'Narendra Modi',
+                shortName: 'Modi',
+                primaryColor: '#f97316',   // Saffron vest
+                secondaryColor: '#fffbeb', // Cream kurta
+                accentColor: '#fb923c',
+                waveColor: '#fb923c',
+                catchphrases: ["Mitron!", "Vikas!", "Sabka Saath!", "Point Noted!"]
+            },
+            rahul: {
+                id: 'rahul',
+                name: 'Rahul Gandhi',
+                shortName: 'Rahul',
+                primaryColor: '#10b981',   // Emerald accent
+                secondaryColor: '#ffffff', // Crisp white kurta/t-shirt
+                accentColor: '#34d399',
+                waveColor: '#38bdf8',
+                catchphrases: ["Nyay!", "Bharat Jodo!", "Janta ki Awaaz!", "Good Point!"]
+            }
+        };
+
+        // ==========================================
+        // 3. CANVAS & RESPONSIVE SCALING
+        // ==========================================
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const canvasContainer = document.getElementById('canvas-container');
+
+        // Logical coordinate space (scales cleanly to any screen size)
+        const ARENA = {
+            width: 1000,
+            height: 600,
+            groundY: 505,
+            leftWall: 55,
+            rightWall: 945
+        };
+
+        function resizeCanvas() {
+            const rect = canvasContainer.getBoundingClientRect();
+            const dpr = Math.min(window.devicePixelRatio || 1, 2);
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        // ==========================================
+        // 4. CHARACTER ILLUSTRATION RENDERER
+        // ==========================================
+        function drawCharacterAvatar(c, charId, x, y, facing, state, animTime) {
+            c.save();
+            c.translate(x, y);
+
+            // Subtle breathing/running bob
+            const bob = state.isGrounded
+                ? Math.sin(animTime * (Math.abs(state.vx) > 10 ? 18 : 4)) * (Math.abs(state.vx) > 10 ? 4 : 2)
+                : -3;
+
+            // Shadow on floor
+            c.save();
+            c.fillStyle = 'rgba(0, 0, 0, 0.28)';
+            const shadowScale = Math.max(0.45, 1 - (ARENA.groundY - y) / 320);
+            c.beginPath();
+            c.ellipse(0, ARENA.groundY - y + 4, 30 * shadowScale, 8 * shadowScale, 0, 0, Math.PI * 2);
+            c.fill();
+            c.restore();
+
+            // Flip horizontally based on facing direction (1 = right, -1 = left)
+            c.scale(facing, 1);
+            c.translate(0, bob);
+
+            // --- LEGS (Churidar / Trousers) ---
+            const legSwing = state.isGrounded && Math.abs(state.vx) > 10 ? Math.sin(animTime * 18) * 10 : 0;
+            c.strokeStyle = '#f8fafc';
+            c.lineWidth = 10;
+            c.lineCap = 'round';
+
+            // Back leg
+            c.beginPath();
+            c.moveTo(-6, -32);
+            c.lineTo(-8 - legSwing, -4);
+            c.stroke();
+
+            // Front leg
+            c.beginPath();
+            c.moveTo(6, -32);
+            c.lineTo(8 + legSwing, -4);
+            c.stroke();
+
+            // Shoes
+            c.fillStyle = charId === 'modi' ? '#1e293b' : '#334155';
+            c.beginPath();
+            c.ellipse(-8 - legSwing + 3, -3, 8, 4, 0, 0, Math.PI * 2);
+            c.ellipse(8 + legSwing + 3, -3, 8, 4, 0, 0, Math.PI * 2);
+            c.fill();
+
+            // --- TORSO ---
+            if (charId === 'modi') {
+                // Cream Kurta base
+                c.fillStyle = '#fffbeb';
+                c.beginPath();
+                c.roundRect(-20, -82, 40, 56, 10);
+                c.fill();
+
+                // Signature Saffron Sleeveless Modi Jacket
+                c.fillStyle = '#f97316';
+                c.beginPath();
+                c.roundRect(-21, -82, 42, 48, 8);
+                c.fill();
+
+                // Jacket placket & buttons
+                c.strokeStyle = '#c2410c';
+                c.lineWidth = 2;
+                c.beginPath();
+                c.moveTo(4, -80);
+                c.lineTo(4, -34);
+                c.stroke();
+
+                c.fillStyle = '#fef3c7';
+                for (let by = -72; by <= -44; by += 9) {
+                    c.beginPath();
+                    c.arc(4, by, 1.8, 0, Math.PI * 2);
+                    c.fill();
+                }
+                // Pocket square
+                c.fillStyle = '#ffffff';
+                c.fillRect(-13, -72, 9, 4);
+            } else {
+                // Rahul Gandhi: Crisp White Kurta / T-Shirt look with subtle tricolor collar trim
+                c.fillStyle = '#ffffff';
+                c.beginPath();
+                c.roundRect(-20, -82, 40, 56, 10);
+                c.fill();
+                c.strokeStyle = '#cbd5e1';
+                c.lineWidth = 1.5;
+                c.stroke();
+
+                // Subtle Collar & Placket
+                c.strokeStyle = '#94a3b8';
+                c.lineWidth = 2;
+                c.beginPath();
+                c.moveTo(4, -80);
+                c.lineTo(4, -52);
+                c.stroke();
+            }
+
+            // --- HEAD ---
+            c.fillStyle = charId === 'modi' ? '#f3c19d' : '#f5c7a3';
+            c.beginPath();
+            c.arc(0, -104, 21, 0, Math.PI * 2);
+            c.fill();
+
+            if (charId === 'modi') {
+                // White Hair (neatly swept)
+                c.fillStyle = '#f1f5f9';
+                c.beginPath();
+                c.arc(-1, -108, 21.5, Math.PI * 0.95, Math.PI * 2.05);
+                c.fill();
+
+                // Full White Beard & Mustache
+                c.fillStyle = '#f8fafc';
+                c.beginPath();
+                c.arc(2, -100, 19.5, 0.1 * Math.PI, 0.92 * Math.PI);
+                c.fill();
+
+                // Mustache
+                c.fillStyle = '#e2e8f0';
+                c.beginPath();
+                c.ellipse(9, -98, 9, 3.2, 0.1, 0, Math.PI * 2);
+                c.fill();
+
+                // Rimless Glasses
+                c.strokeStyle = '#475569';
+                c.lineWidth = 1.8;
+                c.strokeRect(4, -110, 10, 6);
+                c.beginPath();
+                c.moveTo(-2, -107);
+                c.lineTo(4, -107);
+                c.stroke();
+
+                // Eye
+                c.fillStyle = '#0f172a';
+                c.beginPath();
+                c.arc(9, -107, 2, 0, Math.PI * 2);
+                c.fill();
+            } else {
+                // Dark wavy hair
+                c.fillStyle = '#1e293b';
+                c.beginPath();
+                c.arc(-2, -109, 21.5, Math.PI * 0.92, Math.PI * 2.08);
+                c.fill();
+                // Sideburns
+                c.fillRect(-19, -110, 6, 14);
+
+                // Neat salt-and-pepper stubble/short beard
+                c.fillStyle = 'rgba(51, 65, 85, 0.45)';
+                c.beginPath();
+                c.arc(2, -100, 18.5, 0.12 * Math.PI, 0.88 * Math.PI);
+                c.fill();
+
+                // Eyebrow & Expressive Eye
+                c.strokeStyle = '#0f172a';
+                c.lineWidth = 2.2;
+                c.beginPath();
+                c.moveTo(5, -112);
+                c.lineTo(13, -111);
+                c.stroke();
+
+                c.fillStyle = '#0f172a';
+                c.beginPath();
+                c.arc(9, -107, 2.3, 0, Math.PI * 2);
+                c.fill();
+
+                // Dimple smile
+                c.strokeStyle = '#7c2d12';
+                c.lineWidth = 1.6;
+                c.beginPath();
+                c.arc(8, -98, 5, 0.1, 0.75 * Math.PI);
+                c.stroke();
+            }
+
+            // --- FRONT ARM & MICROPHONE ---
+            c.save();
+            const armAngle = state.isJabbing ? -0.35 : (state.isShielding ? -0.9 : 0.25);
+            c.translate(4, -74);
+            c.rotate(armAngle);
+
+            // Sleeve
+            c.fillStyle = charId === 'modi' ? '#fffbeb' : '#ffffff';
+            c.beginPath();
+            c.roundRect(-4, 0, 26, 10, 5);
+            c.fill();
+
+            // Hand
+            c.fillStyle = charId === 'modi' ? '#f3c19d' : '#f5c7a3';
+            c.beginPath();
+            c.arc(24, 5, 5.5, 0, Math.PI * 2);
+            c.fill();
+
+            // Debate Microphone
+            c.strokeStyle = '#334155';
+            c.lineWidth = 3.5;
+            c.beginPath();
+            c.moveTo(24, 5);
+            c.lineTo(34, -4);
+            c.stroke();
+
+            c.fillStyle = '#94a3b8';
+            c.beginPath();
+            c.arc(36, -6, 5, 0, Math.PI * 2);
+            c.fill();
+            c.restore();
+
+            // --- CONSTITUTION SHIELD VISUAL ---
+            if (state.isShielding) {
+                c.save();
+                const pulse = 1 + Math.sin(animTime * 12) * 0.04;
+                c.scale(pulse, pulse);
+                c.strokeStyle = '#818cf8';
+                c.fillStyle = 'rgba(99, 102, 241, 0.22)';
+                c.lineWidth = 3;
+                c.beginPath();
+                c.arc(16, -62, 54, -Math.PI * 0.45, Math.PI * 0.45);
+                c.stroke();
+                c.fill();
+
+                // Small "Constitution" emblem badge on shield
+                c.fillStyle = '#e0e7ff';
+                c.font = 'bold 10px Inter';
+                c.fillText('🛡️', 48, -58);
+                c.restore();
+            }
+
+            c.restore();
+        }
+
+        // ==========================================
+        // 5. FIGHTER ENTITY CLASS
+        // ==========================================
+        class Fighter {
+            constructor({ slot, charId, x, facing, isAI = false }) {
+                this.slot = slot; // 'p1' or 'p2'
+                this.charId = charId;
+                this.config = CHARACTERS[charId];
+                this.isAI = isAI;
+
+                this.x = x;
+                this.y = ARENA.groundY;
+                this.vx = 0;
+                this.vy = 0;
+                this.facing = facing; // 1 = right, -1 = left
+
+                this.hp = BALANCED_STATS.maxHp;
+                this.score = 0;
+
+                this.isGrounded = true;
+                this.isJabbing = false;
+                this.jabTimer = 0;
+                this.jabCooldownTimer = 0;
+                this.jabHasHit = false;
+
+                this.waveCooldownTimer = 0;
+                this.isShielding = false;
+                this.hurtFlashTimer = 0;
+
+                // AI timers
+                this.aiDecisionTimer = 0;
+                this.aiMoveDir = 0;
+            }
+
+            update(dt, opponent, game) {
+                // Cooldowns
+                if (this.jabCooldownTimer > 0) this.jabCooldownTimer = Math.max(0, this.jabCooldownTimer - dt);
+                if (this.waveCooldownTimer > 0) this.waveCooldownTimer = Math.max(0, this.waveCooldownTimer - dt);
+                if (this.hurtFlashTimer > 0) this.hurtFlashTimer = Math.max(0, this.hurtFlashTimer - dt);
+
+                if (this.isJabbing) {
+                    this.jabTimer -= dt;
+                    if (this.jabTimer <= 0) {
+                        this.isJabbing = false;
+                        this.jabHasHit = false;
+                    }
+                }
+
+                // AI Logic if CPU controlled
+                if (this.isAI) {
+                    this.runAI(dt, opponent, game);
+                }
+
+                // Movement restrictions while shielding
+                const speedMult = this.isShielding ? 0.35 : 1;
+                this.x += this.vx * speedMult * dt;
+
+                // Gravity & Vertical movement
+                this.vy += BALANCED_STATS.gravity * dt;
+                this.y += this.vy * dt;
+
+                if (this.y >= ARENA.groundY) {
+                    this.y = ARENA.groundY;
+                    this.vy = 0;
+                    this.isGrounded = true;
+                } else {
+                    this.isGrounded = false;
+                }
+
+                // Arena boundaries
+                if (this.x < ARENA.leftWall) this.x = ARENA.leftWall;
+                if (this.x > ARENA.rightWall) this.x = ARENA.rightWall;
+
+                // Auto-face opponent when grounded and not mid-jab
+                if (!this.isJabbing && Math.abs(opponent.x - this.x) > 15) {
+                    this.facing = opponent.x > this.x ? 1 : -1;
+                }
+
+                // Check Debate Jab Hitbox
+                if (this.isJabbing && !this.jabHasHit) {
+                    const hitX = this.x + this.facing * BALANCED_STATS.jabRange;
+                    const distX = Math.abs(hitX - opponent.x);
+                    const distY = Math.abs(this.y - opponent.y);
+                    if (distX < 58 && distY < 75) {
+                        this.jabHasHit = true;
+                        this.landDebateJab(opponent, game);
+                    }
+                }
+            }
+
+            jump() {
+                if (this.isGrounded && !this.isShielding) {
+                    this.vy = BALANCED_STATS.jumpForce;
+                    this.isGrounded = false;
+                    sfx.playJump();
+                }
+            }
+
+            triggerJab(game) {
+                if (this.jabCooldownTimer <= 0 && !this.isShielding) {
+                    this.isJabbing = true;
+                    this.jabTimer = BALANCED_STATS.jabDuration;
+                    this.jabCooldownTimer = BALANCED_STATS.jabCooldown;
+                    this.jabHasHit = false;
+                    sfx.playJab();
+
+                    // Spawn visual speech shockwave
+                    const phrase = this.config.catchphrases[Math.floor(Math.random() * this.config.catchphrases.length)];
+                    game.spawnFloatingText(this.x + this.facing * 45, this.y - 115, phrase, this.config.accentColor, 14);
+                }
+            }
+
+            triggerWave(game) {
+                if (this.waveCooldownTimer <= 0 && !this.isShielding) {
+                    this.waveCooldownTimer = BALANCED_STATS.waveCooldown;
+                    sfx.playWave();
+                    game.projectiles.push({
+                        owner: this,
+                        x: this.x + this.facing * 45,
+                        y: this.y - 68,
+                        vx: this.facing * BALANCED_STATS.waveSpeed,
+                        color: this.config.waveColor,
+                        life: 2.0
+                    });
+                    game.spawnFloatingText(this.x, this.y - 130, "POLICY WAVE! 📜", "#38bdf8", 15);
+                }
+            }
+
+            landDebateJab(opponent, game) {
+                const blocked = opponent.isShielding;
+                const dmg = Math.round(BALANCED_STATS.jabDamage * (blocked ? BALANCED_STATS.shieldDamageMult : 1));
+                const pts = blocked ? 2 : BALANCED_STATS.jabPoints;
+
+                opponent.hp = Math.max(0, opponent.hp - dmg);
+                opponent.hurtFlashTimer = 0.15;
+                opponent.vx = this.facing * (blocked ? 90 : 210);
+                this.score += pts;
+
+                if (blocked) {
+                    sfx.playBlock();
+                    game.spawnFloatingText(opponent.x, opponent.y - 115, `SHIELDED! +${pts}`, "#a5b4fc", 14);
+                } else {
+                    sfx.playHit();
+                    game.spawnFloatingText(opponent.x, opponent.y - 115, `+${pts} PTS!`, "#fde047", 18);
+                }
+                game.spawnParticles(opponent.x, opponent.y - 65, this.config.accentColor, 10);
+            }
+
+            runAI(dt, opponent, game) {
+                this.aiDecisionTimer -= dt;
+                const distToOpponent = opponent.x - this.x;
+                const absDist = Math.abs(distToOpponent);
+
+                // Check incoming projectiles to block or jump
+                const incomingWave = game.projectiles.find(p => p.owner !== this && Math.abs(p.x - this.x) < 160);
+                if (incomingWave) {
+                    if (Math.random() < 0.65) {
+                        this.isShielding = true;
+                        this.vx = 0;
+                        return;
+                    } else if (this.isGrounded) {
+                        this.jump();
+                    }
+                }
+
+                if (this.aiDecisionTimer <= 0) {
+                    this.aiDecisionTimer = 0.18 + Math.random() * 0.16;
+                    this.isShielding = false;
+
+                    // Prioritize Vote Orb if spawned!
+                    if (game.voteOrb) {
+                        const orbDir = game.voteOrb.x > this.x ? 1 : -1;
+                        this.aiMoveDir = orbDir;
+                        if (Math.abs(game.voteOrb.x - this.x) < 60 && game.voteOrb.y < this.y - 60 && this.isGrounded) {
+                            this.jump();
+                        }
+                    } else {
+                        // Combat spacing
+                        if (absDist > 260 && this.waveCooldownTimer <= 0 && Math.random() < 0.45) {
+                            this.triggerWave(game);
+                            this.aiMoveDir = distToOpponent > 0 ? 1 : -1;
+                        } else if (absDist > 82) {
+                            this.aiMoveDir = distToOpponent > 0 ? 1 : -1;
+                            if (Math.random() < 0.12 && this.isGrounded) this.jump();
+                        } else {
+                            // In melee range
+                            this.aiMoveDir = 0;
+                            if (opponent.isJabbing && Math.random() < 0.4) {
+                                this.isShielding = true;
+                            } else if (this.jabCooldownTimer <= 0) {
+                                this.triggerJab(game);
+                            }
+                        }
+                    }
+                }
+
+                this.vx = this.aiMoveDir * BALANCED_STATS.speed * 0.92;
+            }
+
+            draw(c, animTime) {
+                // Hurt blink effect
+                if (this.hurtFlashTimer > 0 && Math.floor(this.hurtFlashTimer * 30) % 2 === 0) {
+                    c.save();
+                    c.globalAlpha = 0.55;
+                    drawCharacterAvatar(c, this.charId, this.x, this.y, this.facing, this, animTime);
+                    c.restore();
+                } else {
+                    drawCharacterAvatar(c, this.charId, this.x, this.y, this.facing, this, animTime);
+                }
+
+                // Debate Jab Sonic Soundwave Arc
+                if (this.isJabbing) {
+                    c.save();
+                    c.translate(this.x + this.facing * 42, this.y - 72);
+                    c.scale(this.facing, 1);
+                    c.strokeStyle = this.config.accentColor;
+                    c.lineWidth = 4;
+                    for (let i = 1; i <= 3; i++) {
+                        c.beginPath();
+                        c.arc(0, 0, i * 13, -0.55, 0.55);
+                        c.stroke();
+                    }
+                    c.restore();
+                }
+
+                // Overhead Player Tag
+                c.save();
+                c.font = 'bold 13px Fredoka, sans-serif';
+                c.textAlign = 'center';
+                const tagText = this.slot === 'p1' ? `P1 • ${this.config.shortName}` : `${this.isAI ? 'CPU' : 'P2'} • ${this.config.shortName}`;
+                const tagWidth = c.measureText(tagText).width + 16;
+                c.fillStyle = 'rgba(15, 23, 42, 0.78)';
+                c.beginPath();
+                c.roundRect(this.x - tagWidth / 2, this.y - 155, tagWidth, 20, 10);
+                c.fill();
+                c.fillStyle = this.slot === 'p1' ? '#fcd34d' : '#6ee7b7';
+                c.fillText(tagText, this.x, this.y - 141);
+                c.restore();
+            }
+        }
+
+        // ==========================================
+        // 6. MAIN GAME ENGINE
+        // ==========================================
+        class SansadGame {
+            constructor() {
+                this.mode = '1p'; // '1p' or '2p'
+                this.p1Char = 'modi';
+                this.running = false;
+                this.timeRemaining = BALANCED_STATS.roundDuration;
+                this.animTime = 0;
+
+                this.p1 = null;
+                this.p2 = null;
+                this.projectiles = [];
+                this.particles = [];
+                this.floatingTexts = [];
+                this.voteOrb = null;
+                this.orbSpawnTimer = 4.5;
+
+                this.keys = {};
+                this.touchState = { left: false, right: false, up: false, down: false };
+
+                this.bindInputs();
+                this.renderMenuPreviews();
+            }
+
+            renderMenuPreviews() {
+                const drawPreview = (canvasId, charId) => {
+                    const pCanvas = document.getElementById(canvasId);
+                    if (!pCanvas) return;
+                    const pCtx = pCanvas.getContext('2d');
+                    pCtx.clearRect(0, 0, 64, 64);
+                    pCtx.save();
+                    pCtx.translate(32, 92);
+                    pCtx.scale(0.68, 0.68);
+                    // Draw head & upper torso
+                    drawCharacterAvatar(pCtx, charId, 0, 0, 1, { isGrounded: true, vx: 0, isJabbing: false, isShielding: false }, 0);
+                    pCtx.restore();
+                };
+                drawPreview('preview-modi', 'modi');
+                drawPreview('preview-rahul', 'rahul');
+            }
+
+            bindInputs() {
+                window.addEventListener('keydown', (e) => {
+                    this.keys[e.code] = true;
+                    if (!this.running) return;
+
+                    // Player 1 Actions
+                    if (e.code === 'KeyW') this.p1.jump();
+                    if (e.code === 'KeyF') this.p1.triggerJab(this);
+                    if (e.code === 'KeyG') this.p1.triggerWave(this);
+
+                    // Player 2 Actions (in 2P mode)
+                    if (this.mode === '2p') {
+                        if (e.code === 'ArrowUp') this.p2.jump();
+                        if (e.code === 'KeyK') this.p2.triggerJab(this);
+                        if (e.code === 'KeyL') this.p2.triggerWave(this);
+                    }
+                });
+
+                window.addEventListener('keyup', (e) => {
+                    this.keys[e.code] = false;
+                });
+
+                // Touch Controls for Mobile
+                document.querySelectorAll('.touch-btn').forEach(btn => {
+                    const action = btn.dataset.action;
+                    const handleStart = (e) => {
+                        e.preventDefault();
+                        if (!this.running || !this.p1) return;
+                        if (action === 'left') this.touchState.left = true;
+                        if (action === 'right') this.touchState.right = true;
+                        if (action === 'up') this.p1.jump();
+                        if (action === 'shield') this.p1.isShielding = true;
+                        if (action === 'jab') this.p1.triggerJab(this);
+                        if (action === 'special') this.p1.triggerWave(this);
+                    };
+                    const handleEnd = (e) => {
+                        e.preventDefault();
+                        if (action === 'left') this.touchState.left = false;
+                        if (action === 'right') this.touchState.right = false;
+                        if (action === 'shield' && this.p1) this.p1.isShielding = false;
+                    };
+                    btn.addEventListener('touchstart', handleStart, { passive: false });
+                    btn.addEventListener('touchend', handleEnd, { passive: false });
+                    btn.addEventListener('mousedown', handleStart);
+                    btn.addEventListener('mouseup', handleEnd);
+                    btn.addEventListener('mouseleave', handleEnd);
+                });
+            }
+
+            async startMatch() {
+                await sfx.init();
+                resizeCanvas();
+
+                const p2Char = this.p1Char === 'modi' ? 'rahul' : 'modi';
+                this.p1 = new Fighter({
+                    slot: 'p1',
+                    charId: this.p1Char,
+                    x: 240,
+                    facing: 1,
+                    isAI: false
+                });
+                this.p2 = new Fighter({
+                    slot: 'p2',
+                    charId: p2Char,
+                    x: 760,
+                    facing: -1,
+                    isAI: this.mode === '1p'
+                });
+
+                this.projectiles = [];
+                this.particles = [];
+                this.floatingTexts = [];
+                this.voteOrb = null;
+                this.orbSpawnTimer = 3.5;
+                this.timeRemaining = BALANCED_STATS.roundDuration;
+                this.running = true;
+
+                // Update HUD labels
+                document.getElementById('p1-name').textContent = this.p1.config.name;
+                document.getElementById('p2-name').textContent = this.p2.config.name;
+                document.getElementById('p2-badge').textContent = this.mode === '1p' ? 'CPU' : 'P2';
+                document.getElementById('p2-hint-text').style.display = this.mode === '2p' ? 'block' : 'none';
+
+                // Show HUD & Controls, Hide Overlays
+                document.getElementById('menu-screen').classList.add('hidden');
+                document.getElementById('gameover-screen').classList.add('hidden');
+                document.getElementById('hud').classList.remove('hidden');
+                document.getElementById('desktop-controls-hint').classList.remove('hidden');
+                document.getElementById('mobile-controls').classList.remove('hidden');
+
+                this.spawnFloatingText(ARENA.width / 2, 230, "DEBATE BEGINS!", "#fde047", 28);
+            }
+
+            processPlayerInputs() {
+                // Player 1 Movement & Shield
+                let p1Dir = 0;
+                if (this.keys['KeyA'] || this.touchState.left) p1Dir -= 1;
+                if (this.keys['KeyD'] || this.touchState.right) p1Dir += 1;
+                this.p1.vx = p1Dir * BALANCED_STATS.speed;
+
+                if (!this.touchState.shieldActive) {
+                    this.p1.isShielding = Boolean(this.keys['KeyH'] || this.keys['KeyS']);
+                }
+
+                // Player 2 Movement & Shield (if 2P mode)
+                if (this.mode === '2p') {
+                    let p2Dir = 0;
+                    if (this.keys['ArrowLeft']) p2Dir -= 1;
+                    if (this.keys['ArrowRight']) p2Dir += 1;
+                    this.p2.vx = p2Dir * BALANCED_STATS.speed;
+                    this.p2.isShielding = Boolean(this.keys['KeyM'] || this.keys['ArrowDown']);
+                }
+            }
+
+            spawnFloatingText(x, y, text, color = '#ffffff', size = 16) {
+                this.floatingTexts.push({
+                    x, y, text, color, size,
+                    vy: -55,
+                    life: 1.0,
+                    maxLife: 1.0
+                });
+            }
+
+            spawnParticles(x, y, color, count = 12) {
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 70 + Math.random() * 180;
+                    this.particles.push({
+                        x, y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 60,
+                        color,
+                        size: 3 + Math.random() * 4,
+                        life: 0.45 + Math.random() * 0.25
+                    });
+                }
+            }
+
+            update(dt) {
+                if (!this.running) return;
+                this.animTime += dt;
+
+                // Round Timer
+                this.timeRemaining -= dt;
+                if (this.timeRemaining <= 0) {
+                    this.timeRemaining = 0;
+                    this.endMatch("Time's Up! Speaker Adjourned Session.");
+                    return;
+                }
+
+                this.processPlayerInputs();
+
+                this.p1.update(dt, this.p2, this);
+                this.p2.update(dt, this.p1, this);
+
+                // Check KO condition
+                if (this.p1.hp <= 0 || this.p2.hp <= 0) {
+                    this.endMatch("Decisive Debate Majority Achieved!");
+                    return;
+                }
+
+                // Vote Orb Spawner
+                if (!this.voteOrb) {
+                    this.orbSpawnTimer -= dt;
+                    if (this.orbSpawnTimer <= 0) {
+                        this.voteOrb = {
+                            x: ARENA.width / 2 + (Math.random() - 0.5) * 240,
+                            y: ARENA.groundY - 95 - Math.random() * 75,
+                            radius: 22,
+                            pulse: 0
+                        };
+                        this.spawnFloatingText(this.voteOrb.x, this.voteOrb.y - 35, "VOTE ORB SPAWNED! +25", "#facc15", 15);
+                    }
+                } else {
+                    this.voteOrb.pulse += dt * 5;
+                    // Check collection by P1 or P2
+                    [this.p1, this.p2].forEach(player => {
+                        if (!this.voteOrb) return;
+                        const dx = player.x - this.voteOrb.x;
+                        const dy = (player.y - 60) - this.voteOrb.y;
+                        if (Math.hypot(dx, dy) < 52) {
+                            player.score += BALANCED_STATS.orbPoints;
+                            sfx.playOrb();
+                            this.spawnParticles(this.voteOrb.x, this.voteOrb.y, '#facc15', 18);
+                            this.spawnFloatingText(this.voteOrb.x, this.voteOrb.y - 20, `+${BALANCED_STATS.orbPoints} VOTE BONUS!`, "#fde047", 20);
+                            this.voteOrb = null;
+                            this.orbSpawnTimer = 6.5;
+                        }
+                    });
+                }
+
+                // Update Policy Wave Projectiles
+                for (let i = this.projectiles.length - 1; i >= 0; i--) {
+                    const proj = this.projectiles[i];
+                    proj.x += proj.vx * dt;
+                    proj.life -= dt;
+
+                    const target = proj.owner === this.p1 ? this.p2 : this.p1;
+                    if (Math.abs(proj.x - target.x) < 38 && Math.abs(proj.y - (target.y - 60)) < 55) {
+                        const blocked = target.isShielding;
+                        const dmg = Math.round(BALANCED_STATS.waveDamage * (blocked ? BALANCED_STATS.shieldDamageMult : 1));
+                        const pts = blocked ? 3 : BALANCED_STATS.wavePoints;
+
+                        target.hp = Math.max(0, target.hp - dmg);
+                        target.hurtFlashTimer = 0.2;
+                        proj.owner.score += pts;
+
+                        if (blocked) {
+                            sfx.playBlock();
+                            this.spawnFloatingText(target.x, target.y - 115, `BLOCKED WAVE! +${pts}`, "#a5b4fc", 14);
+                        } else {
+                            sfx.playHit();
+                            this.spawnFloatingText(target.x, target.y - 115, `POLICY HIT! +${pts}`, "#38bdf8", 18);
+                        }
+                        this.spawnParticles(proj.x, proj.y, proj.color, 14);
+                        this.projectiles.splice(i, 1);
+                        continue;
+                    }
+
+                    if (proj.life <= 0 || proj.x < ARENA.leftWall || proj.x > ARENA.rightWall) {
+                        this.projectiles.splice(i, 1);
+                    }
+                }
+
+                // Update Particles
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const pt = this.particles[i];
+                    pt.x += pt.vx * dt;
+                    pt.y += pt.vy * dt;
+                    pt.vy += 400 * dt;
+                    pt.life -= dt;
+                    if (pt.life <= 0) this.particles.splice(i, 1);
+                }
+
+                // Update Floating Texts
+                for (let i = this.floatingTexts.length - 1; i >= 0; i--) {
+                    const ft = this.floatingTexts[i];
+                    ft.y += ft.vy * dt;
+                    ft.life -= dt;
+                    if (ft.life <= 0) this.floatingTexts.splice(i, 1);
+                }
+
+                this.updateHUD();
+            }
+
+            updateHUD() {
+                document.getElementById('timer-display').textContent = Math.ceil(this.timeRemaining);
+                document.getElementById('p1-score').textContent = this.p1.score;
+                document.getElementById('p2-score').textContent = this.p2.score;
+
+                document.getElementById('p1-hp-bar').style.width = `${(this.p1.hp / BALANCED_STATS.maxHp) * 100}%`;
+                document.getElementById('p2-hp-bar').style.width = `${(this.p2.hp / BALANCED_STATS.maxHp) * 100}%`;
+
+                const p1WaveReady = 1 - (this.p1.waveCooldownTimer / BALANCED_STATS.waveCooldown);
+                const p2WaveReady = 1 - (this.p2.waveCooldownTimer / BALANCED_STATS.waveCooldown);
+                document.getElementById('p1-sp-bar').style.width = `${Math.max(0, Math.min(100, p1WaveReady * 100))}%`;
+                document.getElementById('p2-sp-bar').style.width = `${Math.max(0, Math.min(100, p2WaveReady * 100))}%`;
+            }
+
+            endMatch(reasonText) {
+                this.running = false;
+                sfx.playWin();
+
+                let winnerTitle = "It's a Parliamentary Tie!";
+                if (this.p1.hp <= 0 && this.p2.hp > 0) {
+                    winnerTitle = `${this.p2.config.name} Wins!`;
+                } else if (this.p2.hp <= 0 && this.p1.hp > 0) {
+                    winnerTitle = `${this.p1.config.name} Wins!`;
+                } else if (this.p1.score > this.p2.score) {
+                    winnerTitle = `${this.p1.config.name} Wins!`;
+                } else if (this.p2.score > this.p1.score) {
+                    winnerTitle = `${this.p2.config.name} Wins!`;
+                } else if (this.p1.hp > this.p2.hp) {
+                    winnerTitle = `${this.p1.config.name} Wins!`;
+                } else if (this.p2.hp > this.p1.hp) {
+                    winnerTitle = `${this.p2.config.name} Wins!`;
+                }
+
+                document.getElementById('winner-title').textContent = winnerTitle;
+                document.getElementById('winner-reason').textContent = reasonText;
+
+                document.getElementById('end-p1-name').textContent = this.p1.config.name;
+                document.getElementById('end-p1-pts').textContent = `${this.p1.score} PTS`;
+                document.getElementById('end-p1-hp').textContent = `HP: ${this.p1.hp}`;
+
+                document.getElementById('end-p2-name').textContent = this.p2.config.name;
+                document.getElementById('end-p2-pts').textContent = `${this.p2.score} PTS`;
+                document.getElementById('end-p2-hp').textContent = `HP: ${this.p2.hp}`;
+
+                document.getElementById('gameover-screen').classList.remove('hidden');
+            }
+
+            drawBackground(c) {
+                // Warm Sandstone Parliament Hall Backdrop
+                const bgGrad = c.createLinearGradient(0, 0, 0, ARENA.height);
+                bgGrad.addColorStop(0, '#3b1d14');
+                bgGrad.addColorStop(0.55, '#5c2d1e');
+                bgGrad.addColorStop(1, '#29150e');
+                c.fillStyle = bgGrad;
+                c.fillRect(0, 0, ARENA.width, ARENA.height);
+
+                // Grand Sandstone Pillars & Arches
+                c.fillStyle = '#783f2b';
+                const pillarPositions = [110, 310, 500, 690, 890];
+                pillarPositions.forEach(px => {
+                    c.fillRect(px - 22, 75, 44, 340);
+                    // Pillar highlight
+                    c.fillStyle = '#924f37';
+                    c.fillRect(px - 10, 75, 12, 340);
+                    c.fillStyle = '#783f2b';
+                });
+
+                // Decorative Arches between pillars
+                c.strokeStyle = '#d97706';
+                c.lineWidth = 4;
+                for (let i = 0; i < pillarPositions.length - 1; i++) {
+                    const midX = (pillarPositions[i] + pillarPositions[i + 1]) / 2;
+                    c.beginPath();
+                    c.arc(midX, 155, 78, Math.PI, 0);
+                    c.stroke();
+                }
+
+                // Festive Tricolor Bunting Banners at Top
+                const drawBanner = (startX, endX) => {
+                    const segments = 9;
+                    const step = (endX - startX) / segments;
+                    const colors = ['#f97316', '#ffffff', '#10b981'];
+                    for (let i = 0; i < segments; i++) {
+                        const x1 = startX + i * step;
+                        const x2 = x1 + step;
+                        const sag = Math.sin(((i + 0.5) / segments) * Math.PI) * 22;
+                        c.fillStyle = colors[i % 3];
+                        c.beginPath();
+                        c.moveTo(x1, 78 + sag * 0.6);
+                        c.lineTo(x2, 78 + sag * 0.6);
+                        c.lineTo((x1 + x2) / 2, 108 + sag);
+                        c.closePath();
+                        c.fill();
+                    }
+                };
+                drawBanner(90, 480);
+                drawBanner(520, 910);
+
+                // Center Speaker's Podium & Ashoka-inspired Emblem Motif
+                c.fillStyle = '#451a03';
+                c.beginPath();
+                c.roundRect(ARENA.width / 2 - 75, 295, 150, 120, 12);
+                c.fill();
+                c.strokeStyle = '#f59e0b';
+                c.lineWidth = 3;
+                c.stroke();
+
+                // Golden Chakra Wheel Emblem on Podium
+                c.save();
+                c.translate(ARENA.width / 2, 348);
+                c.strokeStyle = '#fbbf24';
+                c.lineWidth = 2.5;
+                c.beginPath();
+                c.arc(0, 0, 22, 0, Math.PI * 2);
+                c.stroke();
+                for (let a = 0; a < Math.PI * 2; a += Math.PI / 6) {
+                    c.beginPath();
+                    c.moveTo(0, 0);
+                    c.lineTo(Math.cos(a) * 22, Math.sin(a) * 22);
+                    c.stroke();
+                }
+                c.restore();
+
+                // Cheering Parliament Gallery Crowd Silhouettes
+                c.fillStyle = '#1e100b';
+                for (let cx = 40; cx <= ARENA.width - 40; cx += 34) {
+                    const cheerOffset = Math.sin(this.animTime * 6 + cx) * 3;
+                    // Head
+                    c.beginPath();
+                    c.arc(cx, 405 + cheerOffset, 10, 0, Math.PI * 2);
+                    c.fill();
+                    // Shoulders
+                    c.beginPath();
+                    c.ellipse(cx, 425 + cheerOffset, 16, 12, 0, Math.PI, 0);
+                    c.fill();
+                }
+
+                // Iconic Lok Sabha Emerald Green Carpet Floor
+                const carpetGrad = c.createLinearGradient(0, 420, 0, ARENA.height);
+                carpetGrad.addColorStop(0, '#065f46');
+                carpetGrad.addColorStop(0.5, '#047857');
+                carpetGrad.addColorStop(1, '#022c22');
+                c.fillStyle = carpetGrad;
+                c.fillRect(0, 425, ARENA.width, ARENA.height - 425);
+
+                // Gold Carpet Trim Lines
+                c.strokeStyle = '#fbbf24';
+                c.lineWidth = 3;
+                c.beginPath();
+                c.moveTo(0, 430);
+                c.lineTo(ARENA.width, 430);
+                c.moveTo(0, ARENA.groundY + 12);
+                c.lineTo(ARENA.width, ARENA.groundY + 12);
+                c.stroke();
+            }
+
+            draw(c) {
+                c.save();
+                // Scale logical 1000x600 arena to fit full canvas smoothly
+                const scaleX = canvas.width / ARENA.width;
+                const scaleY = canvas.height / ARENA.height;
+                c.scale(scaleX, scaleY);
+
+                this.drawBackground(c);
+
+                // Draw Center Vote Orb
+                if (this.voteOrb) {
+                    c.save();
+                    const glow = 1 + Math.sin(this.voteOrb.pulse) * 0.14;
+                    c.translate(this.voteOrb.x, this.voteOrb.y);
+                    c.scale(glow, glow);
+
+                    // Outer aura
+                    c.fillStyle = 'rgba(250, 204, 21, 0.25)';
+                    c.beginPath();
+                    c.arc(0, 0, 32, 0, Math.PI * 2);
+                    c.fill();
+
+                    // Golden Orb
+                    c.fillStyle = '#facc15';
+                    c.strokeStyle = '#ffffff';
+                    c.lineWidth = 3;
+                    c.beginPath();
+                    c.arc(0, 0, 20, 0, Math.PI * 2);
+                    c.fill();
+                    c.stroke();
+
+                    c.fillStyle = '#422006';
+                    c.font = 'bold 11px Fredoka, sans-serif';
+                    c.textAlign = 'center';
+                    c.fillText('VOTE', 0, 4);
+                    c.restore();
+                }
+
+                // Draw Fighters
+                if (this.p1 && this.p2) {
+                    this.p1.draw(c, this.animTime);
+                    this.p2.draw(c, this.animTime);
+                }
+
+                // Draw Policy Wave Projectiles (Scrolls / Sound Waves)
+                this.projectiles.forEach(proj => {
+                    c.save();
+                    c.translate(proj.x, proj.y);
+                    const dir = proj.vx > 0 ? 1 : -1;
+                    c.scale(dir, 1);
+
+                    // Glowing energy trail
+                    c.fillStyle = proj.color;
+                    c.beginPath();
+                    c.ellipse(0, 0, 24, 12, 0, 0, Math.PI * 2);
+                    c.fill();
+
+                    c.fillStyle = '#ffffff';
+                    c.font = 'bold 14px Inter';
+                    c.textAlign = 'center';
+                    c.fillText('📜', 0, 5);
+                    c.restore();
+                });
+
+                // Draw Particles
+                this.particles.forEach(pt => {
+                    c.save();
+                    c.globalAlpha = Math.max(0, pt.life * 1.5);
+                    c.fillStyle = pt.color;
+                    c.beginPath();
+                    c.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2);
+                    c.fill();
+                    c.restore();
+                });
+
+                // Draw Floating Point / Catchphrase Popups
+                this.floatingTexts.forEach(ft => {
+                    c.save();
+                    c.globalAlpha = Math.max(0, ft.life / ft.maxLife);
+                    c.font = `bold ${ft.size}px Fredoka, sans-serif`;
+                    c.textAlign = 'center';
+                    c.fillStyle = '#0f172a';
+                    c.fillText(ft.text, ft.x + 1.5, ft.y + 1.5);
+                    c.fillStyle = ft.color;
+                    c.fillText(ft.text, ft.x, ft.y);
+                    c.restore();
+                });
+
+                c.restore();
+            }
+        }
+
+        // ==========================================
+        // 7. INITIALIZATION & UI EVENT WIRING
+        // ==========================================
+        const game = new SansadGame();
+        let lastTimestamp = 0;
+
+        function gameLoop(timestamp) {
+            if (!lastTimestamp) lastTimestamp = timestamp;
+            const dt = Math.min((timestamp - lastTimestamp) / 1000, 0.05);
+            lastTimestamp = timestamp;
+
+            game.update(dt);
+            game.draw(ctx);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // UI Button Wiring
+        const mode1pBtn = document.getElementById('mode-1p-btn');
+        const mode2pBtn = document.getElementById('mode-2p-btn');
+        const selectModiBtn = document.getElementById('select-modi-btn');
+        const selectRahulBtn = document.getElementById('select-rahul-btn');
+        const soundToggleBtn = document.getElementById('sound-toggle-btn');
+
+        mode1pBtn.addEventListener('click', () => {
+            game.mode = '1p';
+            mode1pBtn.className = "arcade-btn py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base border-2 border-amber-400 bg-amber-500/20 text-amber-200 shadow-lg";
+            mode2pBtn.className = "arcade-btn py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base border-2 border-slate-700 bg-slate-800/70 text-slate-300 hover:border-slate-500";
+        });
+
+        mode2pBtn.addEventListener('click', () => {
+            game.mode = '2p';
+            mode2pBtn.className = "arcade-btn py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base border-2 border-emerald-400 bg-emerald-500/20 text-emerald-200 shadow-lg";
+            mode1pBtn.className = "arcade-btn py-2.5 px-4 rounded-xl font-bold text-sm sm:text-base border-2 border-slate-700 bg-slate-800/70 text-slate-300 hover:border-slate-500";
+        });
+
+        selectModiBtn.addEventListener('click', () => {
+            game.p1Char = 'modi';
+            selectModiBtn.className = "arcade-btn flex flex-col items-center p-3 sm:p-4 rounded-xl border-2 border-orange-400 bg-gradient-to-b from-orange-500/25 to-slate-800/90 text-left transition";
+            selectRahulBtn.className = "arcade-btn flex flex-col items-center p-3 sm:p-4 rounded-xl border-2 border-slate-700 bg-slate-800/70 hover:border-emerald-400/60 text-left transition";
+        });
+
+        selectRahulBtn.addEventListener('click', () => {
+            game.p1Char = 'rahul';
+            selectRahulBtn.className = "arcade-btn flex flex-col items-center p-3 sm:p-4 rounded-xl border-2 border-emerald-400 bg-gradient-to-b from-emerald-500/25 to-slate-800/90 text-left transition";
+            selectModiBtn.className = "arcade-btn flex flex-col items-center p-3 sm:p-4 rounded-xl border-2 border-slate-700 bg-slate-800/70 hover:border-orange-400/60 text-left transition";
+        });
+
+        document.getElementById('start-game-btn').addEventListener('click', () => {
+            game.startMatch();
+        });
+
+        document.getElementById('rematch-btn').addEventListener('click', () => {
+            game.startMatch();
+        });
+
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            game.running = false;
+            document.getElementById('gameover-screen').classList.add('hidden');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('desktop-controls-hint').classList.add('hidden');
+            document.getElementById('mobile-controls').classList.add('hidden');
+            document.getElementById('menu-screen').classList.remove('hidden');
+        });
+
+        soundToggleBtn.addEventListener('click', async () => {
+            await sfx.init();
+            sfx.enabled = !sfx.enabled;
+            soundToggleBtn.textContent = sfx.enabled ? '🔊 SFX ON' : '🔇 SFX OFF';
+        });
+
+        window.onload = function () {
+            resizeCanvas();
+            requestAnimationFrame(gameLoop);
+        };
+    </script>
+</body>
+</html>
